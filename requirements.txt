@@ -4,3 +4,4 @@ pytubefix
 pydub
 moviepy
 pydantic-settings
+yt-dlp
