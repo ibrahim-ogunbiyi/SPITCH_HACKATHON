@@ -74,7 +74,7 @@ def insert_silence_placeholder(records: list) -> list:
 def download_youtube_video(url: str) -> tuple[str, bytes]:
 
     # intialise the YouTube class from pytube
-    yt = YouTube(url, client="WEB", use_oauth=True, allow_oauth_cache=True)
+    yt = YouTube(url, client="WEB")
     ys = yt.streams.filter(progressive=True, file_extension="mp4").first()
 
     # 
