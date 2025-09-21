@@ -9,8 +9,9 @@ from models.model_class import Models
 from pytubefix import YouTube
 from pathlib import Path
 from spitch import Spitch
+from core.config import settings
 
-client = Spitch(api_key=st.secrets["SPITCH_API_KEY"])
+client = Spitch(api_key=settings.SPITCH_API_KEY)
 
 
 def get_transcription_with_speaker(audio_bytes: bytes, src_lang: str) -> list[dict]:
