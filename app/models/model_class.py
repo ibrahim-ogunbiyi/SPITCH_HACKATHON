@@ -1,30 +1,26 @@
-from groq import Groq
-from pyannote.audio import Pipeline
 from core.config import settings
-import torchaudio
 import io
-import torch
 from spitch import Spitch
 import requests
 
 
 class Models:
 
-    @classmethod
-    def get_asr_model(cls, audio_bytes:io.BytesIO):
+    # @classmethod
+    # def get_asr_model(cls, audio_bytes:io.BytesIO):
 
-        client = Groq(api_key=settings.GROQ_API_KEY)
+    #     client = Groq(api_key=settings.GROQ_API_KEY)
 
 
-        # Create a transcription of the audio file
-        transcription = client.audio.transcriptions.create(
-        file=audio_bytes, 
-        model="whisper-large-v3-turbo", 
-        language="en",  
-        temperature=0.0  
-        )
+    #     # Create a transcription of the audio file
+    #     transcription = client.audio.transcriptions.create(
+    #     file=audio_bytes, 
+    #     model="whisper-large-v3-turbo", 
+    #     language="en",  
+    #     temperature=0.0  
+    #     )
         
-        return transcription.text
+    #     return transcription.text
     
     @classmethod
     def get_spitch_asr_model(cls, audio_bytes:bytes, src_lang:str):

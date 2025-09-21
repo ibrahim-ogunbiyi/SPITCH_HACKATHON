@@ -1,0 +1,5 @@
+spitch
+streamlit
+pytubefix
+pydub
+moviepy
