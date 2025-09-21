@@ -3,3 +3,4 @@ streamlit
 pytubefix
 pydub
 moviepy
+pydantic-settings
