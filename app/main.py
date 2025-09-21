@@ -15,13 +15,13 @@ st.set_page_config(page_title="AI Video Dubbing", page_icon="🎬", layout="cent
 
 # Title
 st.title("🎬 Learn in Your Language")
-st.markdown("Upload an English YouTube video, translate, and dub it into your local language.")
+st.markdown("Upload an English, Or Naija Top Langauges YouTube video, translate, and dub it into your local language.")
 
 # Sidebar for settings
 st.sidebar.header("⚙️ Settings")
 youtube_url = st.sidebar.text_input("YouTube Video URL", placeholder="https://youtube.com/watch?v=...")
-source_lang = st.sidebar.selectbox("Source Language of Video", ["English", "Yoruba", "Hausa", "Igbo", "Amharic"], index=None)
-target_lang = st.sidebar.selectbox("Target Language", ["Yoruba", "Hausa", "Igbo", "Amharic"], index=None)
+source_lang = st.sidebar.selectbox("Source Language of Video", ["English", "Yoruba", "Hausa", "Igbo"], index=None)
+target_lang = st.sidebar.selectbox("Target Language", ["Yoruba", "Hausa", "Igbo"], index=None)
 
 target_lang_map = {
     "Yoruba": "yo",
