@@ -83,7 +83,7 @@ def download_youtube_video(url: str) -> tuple[str, bytes]:
     ydl_opts = {
         "outtmpl": video_temp_path,  #
         "format": "best[ext=mp4]" ,
-        "cookies": "cookies.txt"
+        "cookiefile": "cookies.txt"
     }
 
     with YoutubeDL(ydl_opts) as ydl:
