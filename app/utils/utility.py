@@ -13,21 +13,28 @@ from spitch import Spitch
 from core.config import settings
 from yt_dlp import YoutubeDL
 
-def prepare_cookiefile():
+def prepare_cookiefiles() -> list[str]:
 
     candidates = [
-        os.environ.get("YTDLP_COOKIES"),          # explicit env
-        "/etc/secrets/cookies.txt",               # Render secret
+        os.environ.get("YTDLP_COOKIES"),          
+        "/etc/secrets/cookies.txt",               
+        "/etc/secrets/cookies1.txt",              
+        "/etc/secrets/cookies2.txt", 
+        "/etc/secrets/cookies3.txt",  
+        "/etc/secrets/cookies4.txt",                       
         "/secrets/cookies.txt",                   # GCP secret
-        os.path.join(os.getcwd(), "cookies.txt"), # local dev (gitignored)
+        os.path.join(os.getcwd(), "cookies.txt"), # local dev
     ]
-    for path in candidates:
+
+    cookie_paths = []
+    for i, path in enumerate(candidates):
         if path and os.path.exists(path):
-            # copy to writable tmp file
-            tmp_path = os.path.join(tempfile.gettempdir(), "cookies.txt")
+            tmp_path = os.path.join(tempfile.gettempdir(), f"cookies_{i}.txt")
             shutil.copy(path, tmp_path)
-            return tmp_path
-    return None
+            cookie_paths.append(tmp_path)
+
+    return cookie_paths
+
 
 client = Spitch(api_key=settings.SPITCH_API_KEY)
 
@@ -96,18 +103,28 @@ def download_youtube_video(url: str) -> tuple[str, bytes]:
     fd, video_temp_path = tempfile.mkstemp(suffix=".mp4", dir=Path.cwd())
     Path(video_temp_path).unlink(missing_ok=True)  
 
-    ydl_opts = {
-    "outtmpl": video_temp_path,
-    "format": "best[ext=mp4][protocol^=http]",  
-    "merge_output_format": "mp4",  # force MP4 final file
-    "cookiefile": prepare_cookiefile(),
-    "retries": 10,
-    "fragment_retries": 10,
-}
+    cookie_files = prepare_cookiefiles()
 
-    with YoutubeDL(ydl_opts) as ydl:
-        ydl.download([url])
+    for cookie_path in cookie_files:
+        try:
+            print(f"Trying with cookies: {cookie_path}")
+                
+            ydl_opts = {
+            "outtmpl": video_temp_path,
+            "format": "best[ext=mp4][protocol^=http]",  
+            "merge_output_format": "mp4",  # force MP4 final file
+            "cookiefile":cookie_path,
+            "retries": 10,
+            "fragment_retries": 10,
+            }
 
+            with YoutubeDL(ydl_opts) as ydl:
+                ydl.download([url])
+
+            return "video.mp4"
+        except Exception as e:
+            print(f"Failed with {cookie_path}: {e}")
+            continue
 
     # Extract audio using moviepy
     video = VideoFileClip(video_temp_path)
