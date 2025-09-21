@@ -1,7 +1,8 @@
-from core.config import settings
+# from core.config import settings
 import io
 from spitch import Spitch
 import requests
+import streamlit as st
 
 
 class Models:
@@ -25,7 +26,7 @@ class Models:
     @classmethod
     def get_spitch_asr_model(cls, audio_bytes:bytes, src_lang:str):
 
-        client = Spitch(api_key=settings.SPITCH_API_KEY)
+        client = Spitch(api_key=st.secrets["SPITCH_API_KEY"])
 
         response = client.speech.transcribe(
             language=src_lang,
