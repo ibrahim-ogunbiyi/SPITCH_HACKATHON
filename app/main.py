@@ -83,11 +83,11 @@ if st.sidebar.button("Translate & Dub 🚀"):
             
                 dubbed_video_path = dub_translated_audio_to_video(video_path=original_video_temp_path, audio_path=translated_audio_path)
 
-                render_video(dubbed_video_path)
+                st.video(dubbed_video_path)
 
                 # Expander for original video
                 with st.expander("See Original Video"):
-                    render_video(original_video_temp_path)
+                    st.video(original_video_temp_path)
 
                 # Optional download
                 with open(dubbed_video_path, "rb") as f:
