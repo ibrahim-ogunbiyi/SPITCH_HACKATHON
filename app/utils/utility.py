@@ -1,7 +1,8 @@
 import io
 import os
-import base64
+import shutil
 import tempfile
+import base64
 import streamlit as st
 from pydub import AudioSegment
 from moviepy import AudioFileClip, VideoFileClip
@@ -12,6 +13,21 @@ from spitch import Spitch
 from core.config import settings
 from yt_dlp import YoutubeDL
 
+def prepare_cookiefile():
+
+    candidates = [
+        os.environ.get("YTDLP_COOKIES"),          # explicit env
+        "/etc/secrets/cookies.txt",               # Render secret
+        "/secrets/cookies.txt",                   # GCP secret
+        os.path.join(os.getcwd(), "cookies.txt"), # local dev (gitignored)
+    ]
+    for path in candidates:
+        if path and os.path.exists(path):
+            # copy to writable tmp file
+            tmp_path = os.path.join(tempfile.gettempdir(), "cookies.txt")
+            shutil.copy(path, tmp_path)
+            return tmp_path
+    return None
 
 client = Spitch(api_key=settings.SPITCH_API_KEY)
 
@@ -83,7 +99,7 @@ def download_youtube_video(url: str) -> tuple[str, bytes]:
     ydl_opts = {
         "outtmpl": video_temp_path,  #
         "format": "best[ext=mp4]" ,
-        "cookiefile": "cookies.txt"
+        "cookiefile": prepare_cookiefile()
     }
 
     with YoutubeDL(ydl_opts) as ydl:
