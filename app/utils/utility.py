@@ -97,10 +97,13 @@ def download_youtube_video(url: str) -> tuple[str, bytes]:
     Path(video_temp_path).unlink(missing_ok=True)  
 
     ydl_opts = {
-        "outtmpl": video_temp_path,  #
-        "format": "best[ext=mp4]" ,
-        "cookiefile": prepare_cookiefile()
-    }
+    "outtmpl": video_temp_path,
+    "format": "best[ext=mp4][protocol^=http]",  
+    "merge_output_format": "mp4",  # force MP4 final file
+    "cookiefile": prepare_cookiefile(),
+    "retries": 10,
+    "fragment_retries": 10,
+}
 
     with YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
