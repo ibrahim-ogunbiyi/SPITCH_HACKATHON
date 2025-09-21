@@ -10,6 +10,8 @@ from pytubefix import YouTube
 from pathlib import Path
 from spitch import Spitch
 from core.config import settings
+from yt_dlp import YoutubeDL
+
 
 client = Spitch(api_key=settings.SPITCH_API_KEY)
 
@@ -74,23 +76,21 @@ def insert_silence_placeholder(records: list) -> list:
 
 def download_youtube_video(url: str) -> tuple[str, bytes]:
 
-    # intialise the YouTube class from pytube
-    yt = YouTube(url, client="WEB")
-    ys = yt.streams.filter(progressive=True, file_extension="mp4").first()
 
-    # 
-    video_temp_file = tempfile.NamedTemporaryFile(
-        dir=Path.cwd(), suffix=".mp4", delete=False
-    )
+    fd, video_temp_path = tempfile.mkstemp(suffix=".mp4", dir=Path.cwd())
+    Path(video_temp_path).unlink(missing_ok=True)  
 
-    video_temp_file.close()
+    ydl_opts = {
+        "outtmpl": video_temp_path,  #
+        "format": "best[ext=mp4]" 
+    }
 
-    out_dir = Path(video_temp_file.name).parent
-    out_name = Path(video_temp_file.name).name
-    ys.download(output_path=out_dir, filename=out_name)
+    with YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])
+
 
     # Extract audio using moviepy
-    video = VideoFileClip(video_temp_file.name)
+    video = VideoFileClip(video_temp_path)
     audio_temp_file = tempfile.NamedTemporaryFile(
         dir=Path.cwd(), delete=False, suffix=".wav"
     )
@@ -104,7 +104,7 @@ def download_youtube_video(url: str) -> tuple[str, bytes]:
             audio_bytes = file.read()
         
         # return temp file of video and extracted audio in bytes format
-        return video_temp_file.name, audio_bytes
+        return video_temp_path, audio_bytes
     finally:
         os.remove(audio_temp_file.name)
 
