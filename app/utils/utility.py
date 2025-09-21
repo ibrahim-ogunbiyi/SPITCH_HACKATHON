@@ -221,16 +221,18 @@ def output_voice_base_on_lang(lang: str) -> list[str]:
     elif lang == "Amharic":
         return ["Hana", "Selam", "Tesfaye", "Tena"]
 
-
 def render_video(video_path: str):
-    # Convert path to URL for the browser
-    video_path = Path(video_path)
-    video_url = f"file://{video_path.resolve()}"
+    """Render a video in Streamlit using base64 embedding."""
+
+    with open(video_path, "rb") as f:
+        video_bytes = f.read()
+
+    base64_video = base64.b64encode(video_bytes).decode("utf-8")
 
     st.markdown(
         f"""
         <video controls width="100%" height="600">
-            <source src="{video_url}" type="video/mp4">
+            <source src="data:video/mp4;base64,{base64_video}" type="video/mp4">
         </video>
         """,
         unsafe_allow_html=True,
