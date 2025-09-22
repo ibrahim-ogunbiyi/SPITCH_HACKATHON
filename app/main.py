@@ -97,15 +97,20 @@ if st.sidebar.button("Translate & Dub 🚀"):
         original_video_temp_path, dubbed_video_path = None, None
         try:
             with st.spinner("Processing video... This may take a while ⏳"):
-                
-                if st.session_state.youtube_url:
-                    original_video_temp_path, audio_bytes = download_youtube_video(
-                        url=st.session_state.youtube_url
-                    )
-                elif st.session_state.youtube_video:
-                    original_video_temp_path, audio_bytes = get_video_through_upload(
+                try:
+                    if st.session_state.youtube_url:
+                        original_video_temp_path, audio_bytes = download_youtube_video(
+                            url=st.session_state.youtube_url
+                        )
+
+                    elif st.session_state.youtube_video:
+                        original_video_temp_path, audio_bytes = get_video_through_upload(
                         uploaded_file=st.session_state.youtube_video
                     )
+
+                except Exception:
+                    st.error("Ooops! Unable to Download Video: If you're running the deployed website, please use only offline videos")
+                    st.stop()
 
                 transcription_result = get_transcription_with_speaker(
                     audio_bytes=audio_bytes, src_lang=source_lang_value
