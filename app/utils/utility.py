@@ -1,6 +1,5 @@
 import io
 import os
-import shutil
 import tempfile
 import base64
 import streamlit as st
@@ -11,32 +10,47 @@ from pytubefix import YouTube
 from pathlib import Path
 from spitch import Spitch
 from core.config import settings
-from yt_dlp import YoutubeDL
-
-def prepare_cookiefiles() -> list[str]:
-
-    candidates = [
-        os.environ.get("YTDLP_COOKIES"),          
-        "/etc/secrets/cookies.txt",               
-        "/etc/secrets/cookies1.txt",              
-        "/etc/secrets/cookies2.txt", 
-        "/etc/secrets/cookies3.txt",  
-        "/etc/secrets/cookies4.txt",                       
-        "/secrets/cookies.txt",                   # GCP secret
-        os.path.join(os.getcwd(), "cookies.txt"), # local dev
-    ]
-
-    cookie_paths = []
-    for i, path in enumerate(candidates):
-        if path and os.path.exists(path):
-            tmp_path = os.path.join(tempfile.gettempdir(), f"cookies_{i}.txt")
-            shutil.copy(path, tmp_path)
-            cookie_paths.append(tmp_path)
-
-    return cookie_paths
 
 
 client = Spitch(api_key=settings.SPITCH_API_KEY)
+
+
+def get_video_through_upload(uploaded_file: io.BytesIO):
+
+    print("Was Inside get video through upload")
+    temp_file = tempfile.NamedTemporaryFile(
+        suffix=f".{Path(uploaded_file.name).suffix}",  
+        delete=False,  
+        dir=Path.cwd()
+    )
+    
+    # Write uploaded content to temp file
+    temp_file.write(uploaded_file.read())
+    temp_file.flush()
+    temp_file.close()
+    
+    video_temp_path = temp_file.name
+
+
+    # Extract audio using moviepy
+    video = VideoFileClip(video_temp_path)
+    audio_temp_file = tempfile.NamedTemporaryFile(
+        dir=Path.cwd(), delete=False, suffix=".wav"
+    )
+
+    video.audio.write_audiofile(audio_temp_file.name)
+    video.close()
+
+    # finally delete the audio temp path
+    try:
+        with open(audio_temp_file.name, "rb") as file:
+            audio_bytes = file.read()
+        
+        # return temp file of video and extracted audio in bytes format
+        return video_temp_path, audio_bytes
+    finally:
+        os.remove(audio_temp_file.name)
+
 
 
 def get_transcription_with_speaker(audio_bytes: bytes, src_lang: str) -> list[dict]:
@@ -97,37 +111,26 @@ def insert_silence_placeholder(records: list) -> list:
     return results
 
 
+
 def download_youtube_video(url: str) -> tuple[str, bytes]:
 
+    # intialise the YouTube class from pytube
+    yt = YouTube(url)
+    ys = yt.streams.filter(progressive=True, file_extension="mp4").first()
 
-    fd, video_temp_path = tempfile.mkstemp(suffix=".mp4", dir=Path.cwd())
-    Path(video_temp_path).unlink(missing_ok=True)  
+    # 
+    video_temp_file = tempfile.NamedTemporaryFile(
+        dir=Path.cwd(), suffix=".mp4", delete=False
+    )
 
-    cookie_files = prepare_cookiefiles()
+    video_temp_file.close()
 
-    for cookie_path in cookie_files:
-        try:
-            print(f"Trying with cookies: {cookie_path}")
-                
-            ydl_opts = {
-            "outtmpl": video_temp_path,
-            "format": "best[ext=mp4][protocol^=http]",  
-            "merge_output_format": "mp4",  # force MP4 final file
-            "cookiefile":cookie_path,
-            "retries": 10,
-            "fragment_retries": 10,
-            }
-
-            with YoutubeDL(ydl_opts) as ydl:
-                ydl.download([url])
-
-            return "video.mp4"
-        except Exception as e:
-            print(f"Failed with {cookie_path}: {e}")
-            continue
+    out_dir = Path(video_temp_file.name).parent
+    out_name = Path(video_temp_file.name).name
+    ys.download(output_path=out_dir, filename=out_name)
 
     # Extract audio using moviepy
-    video = VideoFileClip(video_temp_path)
+    video = VideoFileClip(video_temp_file.name)
     audio_temp_file = tempfile.NamedTemporaryFile(
         dir=Path.cwd(), delete=False, suffix=".wav"
     )
@@ -141,7 +144,7 @@ def download_youtube_video(url: str) -> tuple[str, bytes]:
             audio_bytes = file.read()
         
         # return temp file of video and extracted audio in bytes format
-        return video_temp_path, audio_bytes
+        return video_temp_file.name, audio_bytes
     finally:
         os.remove(audio_temp_file.name)
 
@@ -170,6 +173,18 @@ def merge_tts_chunks(
 ) -> str:
     combined = AudioSegment.empty()
 
+    first_speaker = chunks[0]["speaker"] 
+
+    unique_speakers = list(speakers.keys())
+
+    if first_speaker == list(speakers.keys())[0]:
+        refined_speakers = speakers
+    else:
+        refined_speakers = {}
+        refined_speakers[first_speaker] = speakers[unique_speakers[0]]
+        refined_speakers[unique_speakers[0]] = speakers[unique_speakers[1]]
+
+
     # Process each record
     for record in chunks:
         if record["time_end"] <= record["time_start"]:
@@ -181,14 +196,24 @@ def merge_tts_chunks(
             seg = AudioSegment.silent(duration=silence_duration)
             continue
         else:
-            # generate TTS
-            response = client.speech.generate(
-                text=record["translation"],
-                language=target_lang,
-                voice=speakers[record["speaker"]],
-            )
-            b = response.read()
-            seg = AudioSegment.from_file(io.BytesIO(b), format="wav")
+            if len(speakers) > 1:
+                # generate TTS
+                response = client.speech.generate(
+                    text=record["translation"],
+                    language=target_lang,
+                    voice=refined_speakers[record["speaker"]],
+                )
+                b = response.read()
+                seg = AudioSegment.from_file(io.BytesIO(b), format="wav")
+            else:
+                response = client.speech.generate(
+                    text=record["translation"],
+                    language=target_lang,
+                    voice=list(refined_speakers.values())[0],
+                )
+                b = response.read()
+                seg = AudioSegment.from_file(io.BytesIO(b), format="wav")
+
 
         combined += seg
 
@@ -254,3 +279,4 @@ def render_video(video_path: str):
         """,
         unsafe_allow_html=True,
     )
+        

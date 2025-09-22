@@ -2,7 +2,6 @@
 import io
 from spitch import Spitch
 import requests
-import streamlit as st
 from core.config import settings
 
 
@@ -40,12 +39,17 @@ class Models:
     @classmethod
     def get_speaker_diarization(cls, audio_bytes:bytes) -> list[dict]:
 
-        data = io.BytesIO(audio_bytes)
+        files = {"audio_bytes": ("audio.wav", io.BytesIO(audio_bytes), "audio/wav")}
+
         url = "https://ibrahim-geek-speaker-diarisation.hf.space/get_diarisation"
-        content = {"audio_bytes":data}
-        response = requests.post(url, files=content)
+    
+        response = requests.post(url, files=files)
+
 
         return response.json()
+
+
+
 
 
 
