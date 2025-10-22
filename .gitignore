@@ -1,0 +1,14 @@
+.env
+venv/
+
+notebook.ipynb
+
+files/
+
+__pycache__/
+
+translated_audio.wav
+
+speaker_diarisation/
+
+.streamlit/
